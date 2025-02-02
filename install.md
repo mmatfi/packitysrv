@@ -9,3 +9,9 @@
 
 - clone the git repo
 - run vagrant up and follow the progress
+
+
+### Checks and changes
+
+- To run just the sanity checks: vagrant ssh -c "cd /data && ansible-playbook --extra-vars @variables.yml -i inventory check-nginx.yml" 
+- Updates can me made by changing data/variables and running destroy / up with vagrant or check the playbooks from the Vagrantfile and run with via vagrant ssh

@@ -1,0 +1,3 @@
+nginx_branch: "stable-1.26"
+nginx_version: "nginx/1.26.2"
+conf_version: "local-0.0.1"
