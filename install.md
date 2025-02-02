@@ -17,4 +17,5 @@
 - Updates can me made by changing data/variables and running destroy / up with vagrant or check the playbooks from the Vagrantfile and run with via vagrant ssh
 
 
-* to be used on a "normal" linux host, otherwise your mileage may vary
+
+ *to be used on a "normal" linux host, otherwise your mileage may vary*
