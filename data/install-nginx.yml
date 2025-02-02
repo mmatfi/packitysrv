@@ -1,0 +1,69 @@
+---
+- hosts: localhost
+  connection: local
+  become: true
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install nginx
+      apt:
+        name: nginx
+        state: present
+
+    - name: Clean up default site config
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+
+    - name: touch custom site config
+      shell: touch /etc/nginx/sites-enabled/custom.conf
+
+    - name: Modify nginx configuration
+      blockinfile:
+        path: /etc/nginx/sites-enabled/custom.conf
+        block: |
+          server {
+            listen 80 default_server;
+            # ver {{ conf_version }} 
+            location / {
+              root /var/www/html; 
+              index index.html index.htm;
+            }
+
+          }
+
+    - name: Create doc root 
+      file:
+        path: /var/www/html 
+        state: directory
+        mode: 0755
+
+    - name: Replace www-data with nobody in nginx.conf
+      replace:  # Correct module name
+        path: /etc/nginx/nginx.conf
+        regexp: 'user www-data;'
+        replace: 'user nobody;'
+
+    - name: disable nginx service pid file
+      replace:  # Correct module name
+        path: /usr/lib/systemd/system/nginx.service
+        regexp: 'PIDFile'
+        replace: '#PIDFile'
+
+    - name: daemon-reload
+      shell: systemctl daemon-reload
+
+    - name: Add a default index.html file
+      copy:
+        content: "<html><h1>Welcome to yer customized nginx!</h1></html>"
+        dest: /var/www/html/index.html # Adjust if you changed the root
+        force: yes
+
+    - name: Drop nginx until we figure out it's ok
+      service:
+        name: nginx
+        state: stopped
+        enabled: no
+

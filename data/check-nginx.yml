@@ -1,0 +1,70 @@
+---
+- hosts: localhost
+  connection: local
+  become: true
+  tasks:
+
+    - name: Drop nginx until we figure out it's ok
+      service:
+        name: nginx
+        state: stopped
+        enabled: no
+
+    - name: read the conf
+      shell: cat /etc/nginx/sites-enabled/custom.conf
+      register: nginx_custom_conf
+
+    - name: a task that only happens if the user exists
+      debug: msg="custom conf valid"
+      when: nginx_custom_conf.stdout.find('{{ conf_version }}') != -1
+
+    - name: Get nginx version from shell
+      shell: nginx -v 2>&1 | awk '{print $3}' # Capture stderr and extract version
+      register: nginx_version_shell
+      changed_when: false  # This command doesn't change anything, so don't report it as changed
+
+    - name: Debug the shell output (optional)
+      debug:
+        msg: "nginx version from shell: {{ nginx_version_shell.stdout }}"
+
+    - name: Compare nginx version from shell to variable
+      assert:
+        that: nginx_version_shell.stdout == nginx_version
+        msg: "nginx version from shell ({{ nginx_version_shell.stdout }}) does not match the variable ({{ nginx_version }})"
+
+    - name: Got this far so enable and start nginx service
+      service:
+        name: nginx
+        state: started
+        enabled: yes
+
+    - name: Check if nginx is listening on port 80 using lsof
+      shell: lsof -i :80  | grep nginx  # -t for PID only, grep for nginx process
+      register: nginx_port_check
+      changed_when: false
+
+    - name: Debug lsof output (optional)
+      debug:
+        msg: "lsof output: {{ nginx_port_check.stdout }}"
+
+    - name: Check if nginx is listening on port 80 (robust count)
+      shell: lsof -i :80 | grep nginx | wc -l # Count the number of matching processes
+      register: nginx_port_count
+      changed_when: false
+
+    - name: Assert that at least one nginx process is listening on port 80
+      assert:
+        that: nginx_port_count.stdout | int > 0
+        msg: "nginx is not listening on port 80 (no nginx processes found by lsof)."
+
+    # Example: Get the PID of the nginx process listening on port 80 (if needed)
+    - name: Get nginx PID listening on port 80
+      set_fact:
+        nginx_pid: "{{ nginx_port_check.stdout }}"
+      when: nginx_port_check.stdout | length > 0
+
+    - debug:
+        msg: "nginx PID listening on port 80: {{ nginx_pid }}"
+      when: nginx_pid is defined
+
+

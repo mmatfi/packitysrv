@@ -78,5 +78,8 @@ Vagrant.configure("2") do |config|
      apt install -y ansible
      cd /data
      ansible-playbook setup.yml
+     ansible-playbook --extra-vars @variables.yml -i inventory install-nginx.yml
+     ansible-playbook --extra-vars @variables.yml -i inventory install-nginx-from-git.yml
+     ansible-playbook --extra-vars @variables.yml -i inventory check-nginx.yml
   SHELL
 end
