@@ -1,0 +1,9 @@
+[localhost]
+127.0.0.1 ansible_user=vagrant ansible_ssh_private_key=~/.ssh/id_rsa
+
+[localhost_vars]
+ansible_connection=ssh
+ansible_ssh_port=22
+ansible_become_method=sudo
+ansible_become_user=root
+
