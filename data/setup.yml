@@ -1,0 +1,114 @@
+---
+- name: SETUP
+  hosts: localhost
+  gather_facts: yes
+  become: yes
+  vars:
+   ansible_user: "mmat"
+   ansible_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDmUZUtE72jqP3iUzNRdXrot94mPTiDCxVEW7bnSk/84 mmat@q"
+  tasks:
+  - name: Colorize root shell prompt
+    lineinfile:
+      path: /root/.bashrc
+      line: 'export PS1="\[\033[38;5;11m\]\u\[$(tput sgr0)\]\[\033[38;5;15m\]@\h:\[$(tput sgr0)\]\[\033[38;5;6m\][\w]:\[$(tput sgr0)\]\[\033[38;5;15m\] \[$(tput sgr0)\]"'
+      state: present
+
+  - name: Alias vi to vim
+    lineinfile:
+      path: /root/.bashrc
+      line: "alias vi='vim'"
+      state: present
+
+  - name: Create vim configuration file
+    file:
+      path: /root/.vimrc
+      state: touch
+      owner: root
+      group: root
+      mode: 0644
+
+  - name: Configure vim
+    blockinfile:
+      path: /root/.vimrc
+      block: |
+        set nocompatible
+        set number
+        set autoindent
+        syntax on
+        highlight Comment ctermfg=LightCyan
+      marker: ""
+      state: present
+
+  - name: Disable root SSH login
+    lineinfile:
+      path: /etc/ssh/sshd_config
+      regexp: "^PermitRootLogin"
+      line: "PermitRootLogin no"
+      state: present
+
+  - name: Disable password authentication in SSH configuration file
+    lineinfile:
+      path: /etc/ssh/sshd_config
+      regexp: '^PasswordAuthentication'
+      line: 'PasswordAuthentication no'
+      state: present
+      backup: yes  # Important: Create a backup of the original file
+
+  - name: Disable empty passwords (highly recommended)
+    lineinfile:
+      path: /etc/ssh/sshd_config
+      regexp: '^PermitEmptyPasswords'
+      line: 'PermitEmptyPasswords no'
+      state: present
+
+  - name: Disable quiet boot mode
+    lineinfile:
+      path: /etc/default/grub
+      regexp: 'GRUB_CMDLINE_LINUX_DEFAULT="quiet"'
+      line: 'GRUB_CMDLINE_LINUX_DEFAULT=""'
+      state: present
+
+  - name: Update grub2
+    command: update-grub2
+
+  - name: Upgrade all packages
+    apt:
+      update_cache: yes
+      upgrade: dist
+
+  - name: Install packages
+    apt:
+      name: "{{ packages }}"
+      state: latest
+    vars:
+      packages:
+      - bash-completion
+      - ccze
+      - curl
+      - git
+      - net-tools
+      - rsync
+      - screen
+      - tcpdump
+      - vim
+      - wget
+      - build-essential
+      - libpcre3-dev 
+      - zlib1g-dev
+      - libssl-dev
+
+  - name: Add user and SSH key
+    user:
+      name: "{{ ansible_user }}"
+      groups: sudo
+      append: yes
+      generate_ssh_key: yes
+      ssh_key_bits: 4096
+      ssh_key_type: rsa
+
+  - name: Copy authorized key to user
+    authorized_key:
+      user: "{{ ansible_user }}"
+      key: "{{ ansible_key }}"
+      state: present
+
