@@ -10,6 +10,14 @@
         state: stopped
         enabled: no
 
+    - name: read the master conf
+      shell: cat /etc/nginx/nginx.conf
+      register: nginx_conf
+
+    - name: a task that only happens if the user exists
+      debug: msg="nginx conf valid"
+      when: nginx_conf.stdout.find('nobody') != -1
+
     - name: read the conf
       shell: cat /etc/nginx/sites-enabled/custom.conf
       register: nginx_custom_conf
